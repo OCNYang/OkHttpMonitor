@@ -45,7 +45,7 @@ Add the dependency:
 ```kotlin
 // build.gradle.kts
 dependencies {
-    implementation("com.github.ocnyang:OkHttpMonitor:<latest-version>")
+    implementation("com.github.OCNYang:OkHttpMonitor:<latest-version>")
 }
 ```
 
@@ -311,7 +311,7 @@ dependencyResolutionManagement {
 ```kotlin
 // build.gradle.kts
 dependencies {
-    implementation("com.github.ocnyang:OkHttpMonitor:<latest-version>")
+    implementation("com.github.OCNYang:OkHttpMonitor:<latest-version>")
 }
 ```
 
