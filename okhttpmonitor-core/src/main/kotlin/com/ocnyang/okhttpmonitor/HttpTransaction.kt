@@ -64,8 +64,6 @@ class HttpTransaction {
         scheme = httpUrl.scheme
     }
 
-    fun isSuccessful(): Boolean = responseCode in 200..299
-
     /**
      * Converts this transaction to a Map<String, String> suitable for analytics reporting.
      * Fields exceeding [maxFieldLength] will be truncated.
