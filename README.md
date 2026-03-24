@@ -1,8 +1,19 @@
 # OkHttpMonitor
 
-A lightweight, **production-ready** OkHttp interceptor for HTTP request monitoring and analytics reporting.
+A lightweight, **production-ready** HTTP monitoring library for Kotlin. Supports both **OkHttp** and **Ktor** clients.
 
 **[中文文档](#okhttpmonitor-中文文档)**
+
+---
+
+## Modules
+
+| Module | HTTP Client | Artifact |
+|--------|-------------|---------|
+| `okhttpmonitor-core` | OkHttp 4.x / 5.x | `com.github.OCNYang.OkHttpMonitor:okhttpmonitor-core:<version>` |
+| `ktormonitor-core` | Ktor 2.x | `com.github.OCNYang.OkHttpMonitor:ktormonitor-core:<version>` |
+
+Both modules share the same `HttpTransaction`, `TransactionCollector`, and `BodyDecoder` design — the data model and callback interface are identical, only the installation method differs.
 
 ---
 
@@ -79,6 +90,77 @@ val client = OkHttpClient.Builder()
     .addInterceptor(monitor)
     .build()
 ```
+
+---
+
+## KtorMonitor — Ktor Client Support
+
+`ktormonitor-core` provides the same monitoring capabilities for **Ktor 2.x** clients via a Ktor `ClientPlugin`.
+
+### 1. Add Dependency
+
+```kotlin
+// build.gradle.kts
+dependencies {
+    implementation("com.github.OCNYang.OkHttpMonitor:ktormonitor-core:<latest-version>")
+}
+```
+
+### 2. Install Plugin
+
+```kotlin
+val client = HttpClient(Android) {
+    install(KtorMonitorPlugin) {
+        collector = object : TransactionCollector {
+            override fun onResponseReceived(transaction: HttpTransaction) {
+                if (transaction.isError) {
+                    Log.e("HTTP", "${transaction.method} ${transaction.url} → ${transaction.responseCode} (${transaction.tookMs}ms)")
+                }
+            }
+        }
+    }
+}
+```
+
+### Full Configuration
+
+```kotlin
+val client = HttpClient(Android) {
+    install(KtorMonitorPlugin) {
+        // Required
+        collector = myCollector
+
+        // Optional: redact sensitive headers
+        redactHeaders("Authorization", "Cookie", "Set-Cookie")
+
+        // Optional: body capture limit (default 250 KB)
+        maxContentLength = 250_000L
+
+        // Optional: skip paths
+        skipPaths("/health", "/ping")
+
+        // Optional: skip domains
+        skipDomains("analytics.google.com")
+
+        // Optional: custom body decoder
+        addBodyDecoder(object : BodyDecoder {
+            override fun decodeRequest(contentType: String?, body: ByteString): String? = null
+            override fun decodeResponse(contentType: String?, body: ByteString): String? = null
+        })
+    }
+}
+```
+
+### Differences from OkHttpMonitor
+
+| | `okhttpmonitor-core` | `ktormonitor-core` |
+|---|---|---|
+| Installation | `OkHttpClient.Builder().addInterceptor(monitor)` | `HttpClient { install(KtorMonitorPlugin) { ... } }` |
+| TLS info | `responseTlsVersion`, `responseCipherSuite` populated | Always `null` (not exposed by Ktor API) |
+| Body capture | Stream tee (zero-copy) | `call.save()` (buffer then dual-read) |
+| Threading | OkHttp calling thread | Ktor coroutine context |
+
+---
 
 ## Configuration
 
@@ -261,7 +343,18 @@ limitations under the License.
 
 # OkHttpMonitor 中文文档
 
-一个轻量级、**可用于生产环境**的 OkHttp 拦截器，用于网络请求监控与数据上报。
+一个轻量级、**可用于生产环境**的 Kotlin HTTP 监控库。同时支持 **OkHttp** 和 **Ktor** 客户端。
+
+## 模块说明
+
+| 模块 | HTTP 客户端 | Artifact |
+|------|------------|---------|
+| `okhttpmonitor-core` | OkHttp 4.x / 5.x | `com.github.OCNYang.OkHttpMonitor:okhttpmonitor-core:<version>` |
+| `ktormonitor-core` | Ktor 2.x | `com.github.OCNYang.OkHttpMonitor:ktormonitor-core:<version>` |
+
+两个模块共享相同的 `HttpTransaction`、`TransactionCollector` 和 `BodyDecoder` 设计 —— 数据模型和回调接口完全一致，只有安装方式不同。
+
+---
 
 ## 这个库是做什么的？
 
@@ -345,6 +438,77 @@ val client = OkHttpClient.Builder()
     .addInterceptor(monitor)
     .build()
 ```
+
+---
+
+## KtorMonitor —— Ktor 客户端支持
+
+`ktormonitor-core` 通过 Ktor `ClientPlugin` 为 **Ktor 2.x** 客户端提供等价的监控能力。
+
+### 1. 添加依赖
+
+```kotlin
+// build.gradle.kts
+dependencies {
+    implementation("com.github.OCNYang.OkHttpMonitor:ktormonitor-core:<latest-version>")
+}
+```
+
+### 2. 安装插件
+
+```kotlin
+val client = HttpClient(Android) {
+    install(KtorMonitorPlugin) {
+        collector = object : TransactionCollector {
+            override fun onResponseReceived(transaction: HttpTransaction) {
+                if (transaction.isError) {
+                    Log.e("HTTP", "${transaction.method} ${transaction.url} → ${transaction.responseCode} (${transaction.tookMs}ms)")
+                }
+            }
+        }
+    }
+}
+```
+
+### 完整配置示例
+
+```kotlin
+val client = HttpClient(Android) {
+    install(KtorMonitorPlugin) {
+        // 必填
+        collector = myCollector
+
+        // 脱敏敏感 header
+        redactHeaders("Authorization", "Cookie", "Set-Cookie")
+
+        // Body 捕获上限（默认 250 KB）
+        maxContentLength = 250_000L
+
+        // 跳过指定路径
+        skipPaths("/health", "/ping")
+
+        // 跳过指定域名
+        skipDomains("analytics.google.com")
+
+        // 自定义 body 解码器
+        addBodyDecoder(object : BodyDecoder {
+            override fun decodeRequest(contentType: String?, body: ByteString): String? = null
+            override fun decodeResponse(contentType: String?, body: ByteString): String? = null
+        })
+    }
+}
+```
+
+### 与 OkHttpMonitor 的差异
+
+| | `okhttpmonitor-core` | `ktormonitor-core` |
+|---|---|---|
+| 安装方式 | `OkHttpClient.Builder().addInterceptor(monitor)` | `HttpClient { install(KtorMonitorPlugin) { ... } }` |
+| TLS 信息 | 填充 `responseTlsVersion`、`responseCipherSuite` | 始终为 `null`（Ktor API 不暴露） |
+| Body 捕获 | 流分流（零额外拷贝） | `call.save()` 先缓冲再双读 |
+| 线程 | OkHttp 调用线程 | Ktor 协程上下文 |
+
+---
 
 ## 配置选项
 

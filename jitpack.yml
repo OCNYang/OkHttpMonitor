@@ -1,4 +1,4 @@
 jdk:
   - openjdk17
 install:
-  - ./gradlew :okhttpmonitor-core:publishToMavenLocal
+  - ./gradlew :okhttpmonitor-core:publishToMavenLocal :ktormonitor-core:publishToMavenLocal
